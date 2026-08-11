@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Messages — Demo</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin:0; min-height:100%; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Arial,sans-serif; }
+body { background:#000; color:#fff; }
+button, input { font:inherit; }
+
+.app {
+  width:100%;
+  max-width:520px;
+  height:100dvh;
+  min-height:100dvh;
+  margin:0 auto;
+  background:#000;
+  position:relative;
+  overflow:hidden;
+}
+
+.screen { min-height:100dvh; }
+.hidden { display:none !important; }
+
+/* Home */
+.home-header {
+  padding:54px 20px 14px;
+  font-size:34px;
+  font-weight:700;
+  border-bottom:1px solid #222;
+}
+.contact {
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:14px 18px;
+  border-bottom:1px solid #222;
+  cursor:pointer;
+}
+.avatar {
+  width:50px; height:50px; border-radius:50%;
+  background:linear-gradient(#c9c9cf,#77777f);
+  display:grid; place-items:center;
+  flex:0 0 auto;
+}
+.avatar svg { width:30px; height:30px; fill:#eee; }
+/* Main menu: no contact/avatar icons — keep only the 7000/7001 rows */
+.contact .avatar, .contact img, .contact svg { display:none !important; }
+.contact { gap:0; }
+
+.contact-info { flex:1; min-width:0; }
+.contact-name { font-size:18px; font-weight:600; }
+.contact-sub { color:#8e8e93; font-size:14px; margin-top:3px; }
+.chevron { color:#777; font-size:28px; }
+
+/* Chat */
+.chat {
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  min-height:100dvh;
+  background:#000;
+  overflow:hidden;
+}
+.chat-top {
+  min-height:178px;
+  padding:26px 28px 18px;
+  position:relative;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  border-bottom:0;
+  background:#000;
+  backdrop-filter:none;
+}
+.back {
+  position:absolute;
+  left:28px;
+  top:28px;
+  height:58px;
+  min-width:120px;
+  padding:0 18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  color:#fff;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:30px;
+  background:rgba(45,45,48,.9);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  cursor:pointer;
+}
+.back-arrow {
+  font-size:48px;
+  line-height:1;
+  font-weight:300;
+  transform:translateY(-2px);
+}
+.back-number {
+  width:64px;
+  height:42px;
+  border-radius:23px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f4f4f5;
+  color:#161616;
+  font-size:25px;
+  font-weight:400;
+}
+.profile {
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.profile .avatar { width:96px; height:96px; margin:0 auto 6px; }
+.profile .avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+.profile-name {
+  min-width:178px;
+  height:54px;
+  padding:0 22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:28px;
+  background:rgba(35,35,37,.96);
+  color:#fff;
+  font-weight:700;
+  font-size:27px;
+  line-height:1;
+}
+.profile-name span {
+  color:#9b9b9f;
+  font-weight:400;
+  font-size:42px;
+  line-height:.7;
+  transform:translateY(-1px);
+}
+
+.messages {
+  flex:1 1 auto;
+  min-height:0;
+  padding:18px 14px 16px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.date {
+  text-align:center;
+  color:#b0b0b5;
+  font-size:14px;
+  margin:10px 0 12px;
+}
+.message-time {
+  text-align:center;
+  color:#b0b0b5;
+  font-size:14px;
+  font-weight:500;
+  line-height:1;
+  margin:14px 0 8px;
+}
+@keyframes messagePopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(.96);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes timestampFadeIn {
+  from { opacity:0; transform:translateY(5px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.row { display:flex; }
+.row.out { justify-content:flex-end; }
+.row.in { justify-content:flex-start; }
+
+.row.message-enter {
+  animation: messagePopIn .28s cubic-bezier(.22, .61, .36, 1) both;
+  transform-origin: bottom;
+}
+
+.message-time.message-enter {
+  animation: timestampFadeIn .22s ease-out both;
+}
+
+
+/* iPhone/PWA sizing: use the real viewport and safe areas without a desktop max-width. */
+@media (max-width: 600px), (display-mode: standalone) {
+  html, body { width:100%; min-width:100%; height:100%; overflow:hidden; }
+  .app { width:100vw; max-width:none; height:100dvh; min-height:100dvh; }
+  .chat { height:100dvh; min-height:100dvh; }
+  .messages { -webkit-overflow-scrolling:touch; }
+  .composer { padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row.message-enter,
+  .message-time.message-enter {
+    animation:none;
+  }
+}
+/* iMessage-style bubbles */
+.bubble {
+  position:relative;
+  max-width:78%;
+  padding:11px 16px;
+  border-radius:23px;
+  font-size:18px;
+  line-height:1.24;
+  white-space:pre-line;
+  letter-spacing:-.15px;
+  box-shadow:none;
+}
+.out .bubble {
+  background:#32d74b;
+  color:#fff;
+  border-bottom-right-radius:8px;
+}
+.out .bubble::after {
+  content:"";
+  position:absolute;
+  right:-5px;
+  bottom:1px;
+  width:18px;
+  height:18px;
+  background:#32d74b;
+  border-bottom-left-radius:14px;
+  clip-path:polygon(0 0,100% 100%,0 100%);
+}
+.in .bubble {
+  background:#2c2c2e;
+  color:#fff;
+  border-bottom-left-radius:8px;
+}
+.in .bubble::after {
+  content:"";
+  position:absolute;
+  left:-5px;
+  bottom:1px;
+  width:18px;
+  height:18px;
+  background:#2c2c2e;
+  border-bottom-right-radius:14px;
+  clip-path:polygon(0 100%,100% 0,100% 100%);
+}
+.in .bubble.demo {
+  position:relative;
+}
+.demo-label {
+  display:block;
+  font-size:11px;
+  letter-spacing:.5px;
+  color:#ffd60a;
+  margin-bottom:5px;
+  font-weight:700;
+}
+.ticket-link {
+  color:#58b8ff;
+  text-decoration:underline;
+}
+.composer {
+  flex:0 0 auto;
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border-top:1px solid #222;
+  background:#000;
+}
+.add-btn {
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  border:0;
+  border-radius:50%;
+  background:#2c2c2f;
+  color:#f2f2f7;
+  font-size:40px;
+  font-weight:300;
+  line-height:48px;
+  display:grid;
+  place-items:center;
+  padding:0 0 4px;
+  cursor:pointer;
+}
+.input-wrap {
+  flex:1;
+  min-width:0;
+  height:52px;
+  border:1px solid #3a3a3e;
+  border-radius:27px;
+  display:flex;
+  align-items:center;
+  padding:0 8px 0 17px;
+  background:#000;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.input-wrap:focus-within {
+  border-color:#55555a;
+  box-shadow:0 0 0 1px rgba(255,255,255,.02);
+}
+.input-wrap input {
+  min-width:0;
+  flex:1;
+  height:100%;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#fff;
+  font-size:20px;
+  font-weight:400;
+  letter-spacing:-.2px;
+}
+.input-wrap input::placeholder { color:#8e8e93; opacity:1; }
+.mic-btn {
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  margin-left:3px;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#a1a1a6;
+  display:grid;
+  place-items:center;
+  padding:0;
+  cursor:pointer;
+}
+.mic-icon {
+  width:29px;
+  height:29px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.1;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.mic-btn.active {
+  color:#fff;
+  background:#7ee000;
+  box-shadow:0 0 0 1px rgba(126,224,0,.15);
+}
+.send-icon { width:29px; height:29px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+
+.notice {
+  margin:12px 14px 0;
+  padding:8px 12px;
+  border:1px solid #3a3a3c;
+  border-radius:10px;
+  color:#8e8e93;
+  font-size:12px;
+  text-align:center;
+}
+@media (max-width:600px) {
+  .chat-top { min-height:166px; padding-top:22px; }
+  .back { left:14px; top:22px; min-width:104px; height:52px; gap:12px; padding:0 13px; }
+  .back-number { width:58px; height:38px; font-size:23px; }
+  .back-arrow { font-size:44px; }
+  .profile .avatar { width:82px; height:82px; }
+  .profile-name { min-width:150px; height:48px; font-size:24px; }
+  .profile-name span { font-size:37px; }
+}
+</style>
+
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="icon" sizes="180x180" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="iMessage">
+<meta name="theme-color" content="#000000">
+<style>
+html, body { height:100%; margin:0; }
+body {
+  padding-top: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section id="home" class="screen">
+    <div class="home-header">Messages</div>
+
+    <div class="contact" onclick="openChat('7000')">
+      <div class="avatar"><img src="avatar.jpeg" alt="Контакт"></div>
+      <div class="contact-info">
+        <div class="contact-name">7000</div>
+        <div class="contact-sub">SMS · Demo</div>
+      </div>
+      <div class="chevron">›</div>
+    </div>
+
+    <div class="contact" onclick="openChat('7001')">
+      <div class="avatar"><img src="avatar.jpeg" alt="Контакт"></div>
+      <div class="contact-info">
+        <div class="contact-name">7001</div>
+        <div class="contact-sub">SMS · Demo</div>
+      </div>
+      <div class="chevron">›</div>
+    </div>
+
+    <div class="notice">
+      Это локальный демонстрационный интерфейс. Сообщения не отправляются по SMS.
+    </div>
+  </section>
+
+  <section id="chat" class="screen chat hidden">
+    <div class="chat-top">
+      <button class="back" onclick="goHome()"><span class="back-arrow">‹</span><span class="back-number">85</span></button>
+      <div class="profile">
+        <div class="avatar"><img src="avatar.jpeg" alt="Контакт"></div>
+        <div class="profile-name" id="chatName">7000 <span>›</span></div>
+      </div>
+      <div></div>
+    </div>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="composer">
+      <button class="add-btn" type="button" aria-label="Добавить">+</button>
+      <div class="input-wrap">
+        <input id="codeInput" inputmode="numeric" maxlength="4"
+               placeholder="Text Message • SMS"
+               oninput="validateInput()"
+               onkeydown="if(event.key==='Enter') sendCode()">
+        <button id="sendBtn" class="mic-btn" type="button" onclick="handleComposerAction()" aria-label="Микрофон">
+          <svg id="micIcon" class="mic-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 0 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z"/>
+            <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/>
+          </svg>
+          <svg id="sendIcon" class="send-icon hidden" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 18V6"/>
+            <path d="M7 11l5-5 5 5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+let currentChat = "7000";
+
+function nowText() {
+  const d = new Date();
+  const day = String(d.getDate()).padStart(2,'0');
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2,'0');
+  const mins = String(d.getMinutes()).padStart(2,'0');
+  return {
+    date: `${day}.${month}.${year}`,
+    time: `${hours}:${mins}`
+  };
+}
+
+function openChat(name) {
+  currentChat = name;
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("chat").classList.remove("hidden");
+  document.getElementById("chatName").innerHTML = `${name} <span>›</span>`;
+  document.getElementById("messages").innerHTML = "";
+  document.getElementById("codeInput").value = "";
+  validateInput();
+}
+
+function goHome() {
+  document.getElementById("chat").classList.add("hidden");
+  document.getElementById("home").classList.remove("hidden");
+}
+
+function formatTime() {
+  const d = new Date();
+  return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false});
+}
+
+function validateInput() {
+  const input = document.getElementById("codeInput");
+  input.value = input.value.replace(/\D/g, "").slice(0,4);
+  const sendBtn = document.getElementById("sendBtn");
+  const micIcon = document.getElementById("micIcon");
+  const sendIcon = document.getElementById("sendIcon");
+  const hasCompleteCode = input.value.length === 4;
+
+  sendBtn.classList.toggle("active", hasCompleteCode);
+  micIcon.classList.toggle("hidden", hasCompleteCode);
+  sendIcon.classList.toggle("hidden", !hasCompleteCode);
+  sendBtn.setAttribute("aria-label", hasCompleteCode ? "Отправить" : "Микрофон");
+}
+
+function handleComposerAction() {
+  const input = document.getElementById("codeInput");
+  if (input.value.length === 4) {
+    sendCode();
+  } else {
+    input.focus();
+  }
+}
+
+function sendCode() {
+  const input = document.getElementById("codeInput");
+  const code = input.value;
+  if (!/^\d{4}$/.test(code)) return;
+
+  const messages = document.getElementById("messages");
+
+  // Фиксируем день недели и время именно в момент отправки.
+  const sent = new Date();
+  const sentDay = sent.toLocaleDateString("en-US", { weekday:"long" });
+  const sentTime = sent.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", hour12:false });
+
+  const timestamp = document.createElement("div");
+  timestamp.className = "message-time message-enter";
+  timestamp.textContent = `${sentDay} ${sentTime}`;
+  messages.appendChild(timestamp);
+
+  const outgoing = document.createElement("div");
+  outgoing.className = "row out message-enter";
+  outgoing.innerHTML = `<div class="bubble">${code}</div>`;
+  messages.appendChild(outgoing);
+
+  input.value = "";
+  validateInput();
+
+  // Плавно показываем входящее сообщение, как новое сообщение в iMessage.
+  requestAnimationFrame(() => {
+    messages.scrollTo({ top: messages.scrollHeight, behavior: "smooth" });
+  });
+
+  const pending = document.createElement("div");
+  pending.className = "row in message-enter";
+  pending.innerHTML = `<div class="bubble">Solicitarea este in curs de procesare.</div>`;
+
+  setTimeout(() => {
+    messages.appendChild(pending);
+    messages.scrollTo({ top: messages.scrollHeight, behavior: "smooth" });
+  }, 180);
+
+  const t = nowText();
+  const ticket = Math.floor(10000000 + Math.random() * 90000000);
+
+  const reply = document.createElement("div");
+  reply.className = "row in message-enter";
+  reply.innerHTML = `
+    <div class="bubble demo">
+      <span class="demo-label">DEMO — НЕ НАСТОЯЩИЙ БИЛЕТ</span>
+      Bilet electronic nr. <span class="ticket-link">${ticket}</span>
+      Data ${t.date} ora ${t.time}
+      Valabil 1 ora
+      Pret 7 MDL
+      Numar de bord ${code}
+    </div>`;
+
+  setTimeout(() => {
+    messages.appendChild(reply);
+    messages.scrollTo({ top: messages.scrollHeight, behavior: "smooth" });
+  }, 360);
+}
+</script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");</script></body>
+</html>
